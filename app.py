@@ -1,13 +1,14 @@
-import os
+import os, json
 from flask import Flask, render_template, session, redirect, url_for, request
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
-app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'saas-secret-key-001')
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'dev-key-123')
 
-# Database Setup - Railway Volume পাথ
-DB_PATH = os.path.join('/data', 'users.db') if os.path.exists('/data') else 'users.db'
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
+# Database Setup - রেলওয়ে ভলিউম পাথ
+DB_DIR = '/data' if os.path.exists('/data') else '.'
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(DB_DIR, "users.db")}'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 class User(db.Model):
@@ -22,12 +23,17 @@ with app.app_context():
 
 @app.route('/')
 def index():
-    user = User.query.filter_by(email=session.get('user_email')).first() if 'user_email' in session else None
+    user = None
+    if 'user_email' in session:
+        user = User.query.filter_by(email=session['user_email']).first()
     return render_template('index.html', user=user)
 
-# আপনার অন্য সব রুট (login, callback) এখানে থাকবে...
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    # Railway-এর জন্য পোর্ট সেট করা (Healthcheck ঠিক করতে এটি জরুরি)
+    # Healthcheck failure সমাধান করতে এই পোর্ট সেটিংস জরুরি
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
