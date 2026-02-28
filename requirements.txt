@@ -2,6 +2,7 @@ flask
 flask_sqlalchemy
 google-api-python-client
 google-auth-oauthlib
+google-auth-httplib2
 apscheduler
 google-generativeai
 yt-dlp
